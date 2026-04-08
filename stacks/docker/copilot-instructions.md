@@ -16,7 +16,7 @@ Este proyecto usa un flujo de trabajo Spec-Driven. Antes de generar configuracio
 Sugerí crear un ADR (Architecture Decision Record) cuando:
 - Se decide cambiar la estrategia de orquestación (ej. pasar de Docker Compose a Kubernetes o Swarm).
 - Se adopta una nueva técnica de gestión de secretos (enviroment vs vault docker secrets).
-- Se decide unificar varios procesos en un mismo contenedor (anti-patrón justificable).
+- Se decide unificar varios procesos en un mismo contenedor a pesar de la regla de desacoplamiento.
 
 Formato de sugerencia:
 ```
@@ -27,24 +27,31 @@ Documentá: [qué opciones consideraste y por qué elegiste esta]
 
 ---
 
-## 🔒 Best Practices Oficiales de Docker
+## 🔒 Best Practices Oficiales de Docker (Imágenes y Build)
 
 El Asistente IA debe cumplir estrictamente estos lineamientos al momento de sugerir, generar o refactorizar archivos `Dockerfile` o `docker-compose.yml`.
 
-### 1. Multi-stage Builds Obligatorios
-Nunca dejes herramientas de compilación o desarrollo en la imagen final de producción.
-- Usa una etapa `builder` o `compiler` para descargar dependencias y compilar.
-- Copia únicamente los binarios o artefactos finales y sus librerías de runtime a la imagen final.
+### 1. Organización de Capas y Caché (Build Cache)
+- Ordena las capas desde las que cambian menos frecuente (ej. instalación de dependencias) hasta las que cambian constantemente (el código fuente).
+- **Gestión de paquetes (`apt-get`)**: Siempre agrupa `apt-get update` y `apt-get install` en el **mismo** bloque `RUN`. Si los separas, el caché de Docker ignorará las actualizaciones futuras.
+- **Orden alfabético**: Fija un orden alfabético al instalar múltiples paquetes en múltiples líneas para facilitar la purga y lectura, y elimina el caché de `apt-get` al terminar.
 
 ```dockerfile
-# ❌ INCORRECTO: Todo en una misma capa (pesado e inseguro)
-FROM node:18
-WORKDIR /app
-COPY . .
-RUN npm install
-RUN npm run build
-CMD ["npm", "start"]
+# ✅ CORRECTO: Update, install ordenado, y purga de caché en el mismo RUN
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    git \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+```
 
+### 2. Multi-stage Builds Obligatorios
+Nunca dejes herramientas de compilación o desarrollo en la imagen final de producción.
+- Usa una etapa `builder` o `compiler`.
+- Construye imágenes efímeras: el contenedor final solo debe tener lo mínimo y necesario para correr.
+
+```dockerfile
 # ✅ CORRECTO: Multi-stage build
 FROM node:18-alpine AS builder
 WORKDIR /app
@@ -61,37 +68,39 @@ RUN npm ci --only=production
 CMD ["node", "dist/main.js"]
 ```
 
-### 2. Principio de Privilegios Mínimos (Non-Root User)
-El asistente **nunca** debe sugerir correr la aplicación como usuario `root` a menos que sea estrictamente indispensable.
-Siempre crear y exponer un usuario dedicado de menores privilegios antes de ejecutar el comando CMD o ENTRYPOINT.
+### 3. Imágenes Ligeras y Digest Pinning (Integridad)
+- **Prohibido `latest`**. 
+- Como buena práctica, privilegia el uso de imágenes `alpine` o `slim`.
+- Para extrema seguridad e inmutabilidad, recomienda anclar la base a su **Digest (SHA256)** en vez de solo la etiqueta.
 
 ```dockerfile
-# ✅ CORRECTO: Usuario no root
-FROM python:3.11-slim
-RUN useradd --create-home --shell /bin/bash appuser
-WORKDIR /home/appuser
-COPY . .
-RUN chown -R appuser:appuser /home/appuser
-USER appuser
-CMD ["python", "app.py"]
+# ✅ EXCELENTE: Fijado a una versión, pero anclado al digest inmutable
+FROM alpine:3.21@sha256:a8560b36e8b8210634f77d9f7f9efd7ffa463e380b75e2e74aff4511df3ef88c
 ```
 
-### 3. Imágenes Ligeras y Específicas
-- No uses `latest`. Pinea (fija) siempre la versión específica (ej. `node:18.17.0` o `python:3.11.4`).
-- Privilegia el uso de imágenes `alpine` (basadas en Alpine Linux) o `slim` para reducir drásticamente la superficie de ataque y el peso final.
+### 4. Principio de Privilegios Mínimos (USER)
+El asistente **nunca** debe sugerir correr la aplicación como usuario `root` a menos que sea estrictamente indispensable.
+- En sistemas Linux, usa explícitamente `useradd` y cambia con `USER`. (Evita `sudo`).
 
-### 4. Cache y Orden de las Capas (Layers)
-El código fuente cambia más seguido que las dependencias. Ordená los comandos para maximizar el cacheo del propio daemon de Docker.
-1. `WORKDIR` y Variables de entorno.
-2. Copiar archivos de dependencias (`package.json`, `requirements.txt`).
-3. Instalar dependencias (`npm install`, `pip install`).
-4. Copiar el resto del código (`COPY . .`).
+### 5. Contenedores Desacoplados (Un proceso por contenedor)
+Cada contenedor debe intentar tener **un solo foco**. No instales bases de datos y la aplicación web en el mismo contenedor. Desacóplalos en dos servicios separados por red.
 
-### 5. .dockerignore es Mandatorio
-Todo proyecto debe generar un archivo `.dockerignore`, excluyendo:
-- `.git`
-- Carpetas de dependencias como `node_modules`, `venv`, `__pycache__`
-- Tokens y Secrets: `.env`, claves privadas `*.pem`.
+### 6. Archivo .dockerignore es Mandatorio
+Excluir: `.git`, `node_modules`, `venv`, `__pycache__`, `.env`, y clones locales.
+
+---
+
+## 🏗️ Uso correcto de Instrucciones (Dockerfile)
+
+- **COPY vs ADD**: Usa **siempre** `COPY` para subir código o archivos locales al contenedor. `ADD` solo está permitido si necesitas descargar y extraer un `.tar.gz` o un recurso de una URL externa.
+- **WORKDIR Absoluto**: Usa rutas absolutas (`WORKDIR /app`). Nunca uses un ensamble como `RUN cd /app`.
+- **ENTRYPOINT vs CMD**: 
+  - Usa `ENTRYPOINT` para definir el comando binario o script principal indestructible.
+  - Usa `CMD` para definir los parámetros/banderas *por defecto* (los cuales el usuario puede sobreescribir al correr la imagen).
+```dockerfile
+ENTRYPOINT ["node", "server.js"]
+CMD ["--port", "8080"]
+```
 
 ---
 
@@ -100,49 +109,22 @@ Todo proyecto debe generar un archivo `.dockerignore`, excluyendo:
 Aplica reglas estrictas a las infraestructuras orquestadas localmente.
 
 ### 1. Restricciones y Cuotas (Resource Limits)
-Incluir límites lógicos para que un contenedor que falle o pierda recursos (memory leak) no voltee al host.
-```yaml
-services:
-  api:
-    image: my-api:1.0.0
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 512M
-```
+Incluir límites lógicos para que un contenedor no cause un colapso de memoria en el Host local.
 
 ### 2. Variables de Entorno Seguras
 No hardcodear contraseñas en el YAML. Referenciarlas siempre desde archivos `.env` externos.
-```yaml
-# ❌ INCORRECTO
-environment:
-  - DB_PASSWORD=supersecret_dev123
-
-# ✅ CORRECTO
-environment:
-  - DB_PASSWORD=${DB_PASSWORD}
-```
 
 ### 3. Networking Seguro  
-No expongas servicios de Bases de Datos o Cachés a la máquina Host al menos que se justifique (usando `ports`). Deja únicamente comunicación interna a través de `networks`.
-```yaml
-services:
-  db:
-    image: postgres:15
-    # En vez de "ports", usamos expose para que solo sea visible dentro de docker
-    expose:
-      - "5432"
-    networks:
-      - private_backend_net
-```
+No expongas servicios de Bases de Datos o Cachés a la máquina Host al menos que se justifique de verdad (evita mapeo `ports: "5432:5432"`). Usa redes aisladas y `expose` para tráfico interno puro.
 
 ---
 
 ## Checklist Previo a Commit (Docker)
 
-- [ ] ¿El Dockerfile corre sin usuario `root`?
-- [ ] ¿Se está usando un multi-stage build para aligerar la imagen de producción?
-- [ ] ¿Hay un archivo `.dockerignore` configurado y protegiendo `.env` y `.git`?
-- [ ] ¿Se fijó la versión (tag) base de la imagen o se usó `latest`? (PROHIBIDO `latest`)
-- [ ] (Si aplica) En el docker-compose, ¿las bases de datos están aisladas de interaces públicas?
+- [ ] ¿Hay un `apt-get install`? ¿Está encadenado con el `update` y limpia el caché listado?
+- [ ] ¿Es un Multi-stage build?
+- [ ] ¿Se definió el `USER` no privilegiado?
+- [ ] ¿Hay un archivo `.dockerignore` configurado?
+- [ ] ¿Se evitó estrictamente el label `latest` en el `FROM`?
+- [ ] ¿Se usa `COPY` en lugar de `ADD` para carpetas del proyecto local?
+- [ ] (Si aplica) En el docker compose: ¿Las BBDD están protegidas de exposición directa (ports)?
