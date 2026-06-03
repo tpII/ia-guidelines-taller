@@ -112,12 +112,13 @@ cp -v "$GUIDELINES_DIR"/speckit/*.md "$TARGET_DIR/speckit/"
 echo -e "${BLUE}📄 Copiando template de ADR...${NC}"
 cp -v "$GUIDELINES_DIR/adr/template.md" "$TARGET_DIR/adr/"
 
-# Copiar instrucciones específica de Copilot
+# Copiar instrucciones del stack principal
 echo -e "${BLUE}🤖 Configurando instrucciones de Copilot...${NC}"
 if [ -f "$GUIDELINES_DIR/stacks/$SELECTED_STACK/copilot-instructions.md" ]; then
     cp -v "$GUIDELINES_DIR/stacks/$SELECTED_STACK/copilot-instructions.md" "$TARGET_DIR/.github/copilot-instructions.md"
 else
-    echo -e "${YELLOW}⚠️ No se encontró copilot-instructions.md para el stack $SELECTED_STACK. Se omitió la copia.${NC}"
+    echo -e "${YELLOW}⚠️ No se encontró copilot-instructions.md para el stack $SELECTED_STACK. Se creó archivo vacío.${NC}"
+    touch "$TARGET_DIR/.github/copilot-instructions.md"
 fi
 
 # Copiar clean-code-python.md si corresponde
@@ -125,6 +126,59 @@ if [ "$SELECTED_STACK" = "python" ] && [ -f "$GUIDELINES_DIR/stacks/python/clean
     echo -e "${BLUE}📄 Copiando guía de Clean Code para Python...${NC}"
     cp -v "$GUIDELINES_DIR/stacks/python/clean-code-python.md" "$TARGET_DIR/"
 fi
+
+# Bucle para agregar stacks secundarios
+selected_stacks=",$SELECTED_STACK,"
+
+while true; do
+    echo ""
+    echo -n "¿Querés agregar otro stack tecnológico (secundario)? (s/N): "
+    read_user add_more
+    if [[ ! "$add_more" =~ ^[sS]$ ]]; then
+        break
+    fi
+    
+    echo -e "\nStacks disponibles:"
+    for i in "${!stacks[@]}"; do
+        if [[ "$selected_stacks" =~ ",${stacks[i]}," ]]; then
+            echo -e "  $((i+1))) ${stacks[i]} (YA SELECCIONADO)"
+        else
+            echo -e "  $((i+1))) ${stacks[i]}"
+        fi
+    done
+    
+    echo ""
+    echo -n "Seleccioná el número del stack secundario: "
+    read_user sec_selection
+    
+    if ! [[ "$sec_selection" =~ ^[0-9]+$ ]] || [ "$sec_selection" -lt 1 ] || [ "$sec_selection" -gt ${#stacks[@]} ]; then
+        echo -e "${RED}❌ Selección inválida.${NC}"
+        continue
+    fi
+    
+    SEC_STACK="${stacks[$((sec_selection-1))]}"
+    
+    if [[ "$selected_stacks" =~ ",$SEC_STACK," ]]; then
+        echo -e "${YELLOW}⚠️ El stack $SEC_STACK ya fue seleccionado anteriormente.${NC}"
+        continue
+    fi
+    
+    selected_stacks="$selected_stacks$SEC_STACK,"
+    echo -e "${GREEN}✅ Stack secundario agregado: $SEC_STACK${NC}"
+    
+    # Anexar instrucciones del stack secundario
+    if [ -f "$GUIDELINES_DIR/stacks/$SEC_STACK/copilot-instructions.md" ]; then
+        echo -e "\n\n---\n\n# 🛠️ Stack secundario: $SEC_STACK\n" >> "$TARGET_DIR/.github/copilot-instructions.md"
+        cat "$GUIDELINES_DIR/stacks/$SEC_STACK/copilot-instructions.md" >> "$TARGET_DIR/.github/copilot-instructions.md"
+        echo -e "${BLUE}➕ Instrucciones de $SEC_STACK anexadas a .github/copilot-instructions.md${NC}"
+    fi
+    
+    # Copiar clean-code si es python
+    if [ "$SEC_STACK" = "python" ] && [ -f "$GUIDELINES_DIR/stacks/python/clean-code-python.md" ]; then
+        echo -e "${BLUE}📄 Copiando guía de Clean Code para Python...${NC}"
+        cp -v "$GUIDELINES_DIR/stacks/python/clean-code-python.md" "$TARGET_DIR/"
+    fi
+done
 
 # Limpieza si clonamos temporalmente
 if [ "$IS_LOCAL" = false ] && [ -d "$TEMP_CLONE" ]; then

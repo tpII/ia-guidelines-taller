@@ -101,12 +101,14 @@ Copy-Item -Path (Join-Path $GuidelinesDir "speckit\*.md") -Destination (Join-Pat
 Write-Host "📄 Copiando template de ADR..." -ForegroundColor Cyan
 Copy-Item -Path (Join-Path $GuidelinesDir "adr\template.md") -Destination (Join-Path $TargetDir "adr\") -Force
 
+# Copiar instrucciones del stack principal
 Write-Host "🤖 Configurando instrucciones de Copilot..." -ForegroundColor Cyan
 $CopilotInstPath = Join-Path $GuidelinesDir "stacks\$SelectedStack\copilot-instructions.md"
 if (Test-Path $CopilotInstPath) {
     Copy-Item -Path $CopilotInstPath -Destination (Join-Path $TargetDir ".github\copilot-instructions.md") -Force
 } else {
-    Write-Host "⚠️ No se encontró copilot-instructions.md para el stack $SelectedStack. Se omitió la copia." -ForegroundColor Yellow
+    Write-Host "⚠️ No se encontró copilot-instructions.md para el stack $SelectedStack. Se creó archivo vacío." -ForegroundColor Yellow
+    $null = New-Item -ItemType File -Force -Path (Join-Path $TargetDir ".github\copilot-instructions.md")
 }
 
 # Copiar clean-code-python.md si corresponde
@@ -115,6 +117,62 @@ if ($SelectedStack -eq "python") {
     if (Test-Path $CleanCodePath) {
         Write-Host "📄 Copiando guía de Clean Code para Python..." -ForegroundColor Cyan
         Copy-Item -Path $CleanCodePath -Destination $TargetDir -Force
+    }
+}
+
+# Bucle para agregar stacks secundarios
+$SelectedStacks = New-Object System.Collections.Generic.List[string]
+$null = $SelectedStacks.Add($SelectedStack)
+
+while ($true) {
+    Write-Host ""
+    $AddMore = Read-Host "¿Querés agregar otro stack tecnológico (secundario)? (s/N)"
+    if ($AddMore -notlike "s*" -and $AddMore -notlike "S*") {
+        break
+    }
+    
+    Write-Host "`nStacks disponibles:" -ForegroundColor Cyan
+    for ($i = 0; $i -lt $Stacks.Count; $i++) {
+        if ($SelectedStacks.Contains($Stacks[$i])) {
+            Write-Host "  $($i+1)) $($Stacks[$i]) (YA SELECCIONADO)"
+        } else {
+            Write-Host "  $($i+1)) $($Stacks[$i])"
+        }
+    }
+    
+    Write-Host ""
+    $SecSelection = Read-Host "Seleccioná el número del stack secundario"
+    
+    $SecIndex = 0
+    if (-not [int]::TryParse($SecSelection, [ref]$SecIndex) -or $SecIndex -lt 1 -or $SecIndex -gt $Stacks.Count) {
+        Write-Error "❌ Selección inválida."
+        continue
+    }
+    
+    $SecStack = $Stacks[$SecIndex - 1]
+    if ($SelectedStacks.Contains($SecStack)) {
+        Write-Host "⚠️ El stack $SecStack ya fue seleccionado anteriormente." -ForegroundColor Yellow
+        continue
+    }
+    
+    $null = $SelectedStacks.Add($SecStack)
+    Write-Host "✅ Stack secundario agregado: $SecStack" -ForegroundColor Green
+    
+    # Anexar instrucciones del stack secundario
+    $CopilotInstPath = Join-Path $GuidelinesDir "stacks\$SecStack\copilot-instructions.md"
+    if (Test-Path $CopilotInstPath) {
+        Add-Content -Path (Join-Path $TargetDir ".github\copilot-instructions.md") -Value "`r`n`r`n---`r`n`r`n# 🛠️ Stack secundario: $SecStack`r`n"
+        Get-Content $CopilotInstPath | Add-Content -Path (Join-Path $TargetDir ".github\copilot-instructions.md")
+        Write-Host "➕ Instrucciones de $SecStack anexadas a .github\copilot-instructions.md" -ForegroundColor Cyan
+    }
+    
+    # Copiar clean-code si es python
+    if ($SecStack -eq "python") {
+        $CleanCodePath = Join-Path $GuidelinesDir "stacks\python\clean-code-python.md"
+        if (Test-Path $CleanCodePath) {
+            Write-Host "📄 Copiando guía de Clean Code para Python..." -ForegroundColor Cyan
+            Copy-Item -Path $CleanCodePath -Destination $TargetDir -Force
+        }
     }
 }
 
