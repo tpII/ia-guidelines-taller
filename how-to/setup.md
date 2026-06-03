@@ -19,21 +19,39 @@ git clone <repo-url>
 cd <repo>
 ```
 
-### Paso 2: Copiar archivos de este repo
+### Paso 2: Copiar archivos usando el script interactivo
+
+Para facilitar el copiado de templates y el setup de Copilot según tu stack, podés ejecutar el comando rápido en tu terminal desde el directorio raíz de tu proyecto:
+
+* **En Linux, macOS o Git Bash:**
+  ```bash
+  curl -sSL https://raw.githubusercontent.com/tpII/ia-guidelines-taller/main/setup-speckit.sh | bash
+  ```
+
+* **En Windows (PowerShell):**
+  ```powershell
+  irm https://raw.githubusercontent.com/tpII/ia-guidelines-taller/main/setup-speckit.ps1 | iex
+  ```
+
+El script interactivo creará automáticamente los directorios necesarios (`speckit/`, `adr/`, `.github/`), copiará los archivos base y te guiará para seleccionar y configurar el archivo de instrucciones de Copilot correspondiente a tu stack.
+
+---
+
+#### 💡 Alternativa: Copia Manual (si no usás el script)
+
+Si preferís no usar el script, podés realizar la copia de forma manual corriendo lo siguiente desde la raíz de tu proyecto (asumiendo que tenés el repo de guidelines clonado en una carpeta paralela):
 
 ```bash
-# Crear estructura de speckit
-mkdir -p speckit
-cp ia-guidelines-taller/speckit/*.md speckit/
+# Crear estructura de carpetas
+mkdir -p speckit adr .github
 
-# Crear carpeta de ADRs
-mkdir -p adr
-cp ia-guidelines-taller/adr/template.md adr/
+# Copiar templates de speckit y ADR
+cp ../ia-guidelines-taller/speckit/*.md speckit/
+cp ../ia-guidelines-taller/adr/template.md adr/
 
-# Crear carpeta de GitHub
-mkdir -p .github
-# Copiar instrucciones para tu stack
-cp ia-guidelines-taller/stacks/[tu-stack]/copilot-instructions.md .github/
+# Copiar instrucciones de Copilot correspondientes a tu stack
+# Reemplazar [tu-stack] por uno de los disponibles (arduino, python, reactjs, etc.)
+cp ../ia-guidelines-taller/stacks/[tu-stack]/copilot-instructions.md .github/copilot-instructions.md
 ```
 
 ### Paso 3: Personalizar constitution.md
@@ -65,6 +83,7 @@ git push origin main
 ### 1. Instalar Extensión
 
 En VS Code:
+
 - Extensions marketplace
 - Buscar "GitHub Copilot"
 - Click "Install"
@@ -101,7 +120,6 @@ En VS Code:
 
 ## Guía 3: Workflow Spec-Driven
 
-
 ### Fase 1: Especificación (2 horas)
 
 1. Abrí `speckit/specify.md`
@@ -121,7 +139,7 @@ En VS Code:
 1. Abrí `speckit/plan.md` + `speckit/constitution.md` en tabs
 2. Prompt a Copilot:
    ```
-   Basándote en specify.md y constitution.md, 
+   Basándote en specify.md y constitution.md,
    generá un plan técnico detallado en plan.md
    con arquitectura, componentes, flujos de datos
    ```
@@ -146,6 +164,7 @@ En VS Code:
 ### Fase 4: Implementación (rest of time)
 
 Para cada tarea (ej: T1.1):
+
 1. Abrí `speckit/tasks.md` (posicionado en tarea)
 2. Abrí `speckit/constitution.md`
 3. Abrí `skills/codegen.md` (para tips)
@@ -158,6 +177,7 @@ Para cada tarea (ej: T1.1):
 ## Guía 4: Crear ADR
 
 ### Cuando crear
+
 - Decisión técnica importante (ej: framework, ORM, arquitectura)
 - Cambio que afecta múltiples módulos
 - Trade-off entre alternativas
@@ -240,6 +260,7 @@ git commit -m "type(scope): description
 Tipos: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`
 
 Ejemplos:
+
 ```bash
 git commit -m "feat(api): agregar endpoint GET /readings"
 git commit -m "fix(mqtt): corregir reconexión exponencial backoff"
@@ -253,18 +274,22 @@ Crear `.github/pull_request_template.md`:
 
 ```markdown
 ## Descripción
+
 [Qué hace este PR]
 
 ## Referencia
+
 Closes #[issue number] (si aplica)
 
 ## Checklist
+
 - [ ] Tests pasaron
 - [ ] Documentación actualizada
 - [ ] Seguir convention de constitution.md
 - [ ] Si hay decisión: ADR creado
 
 ## Type
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Refactor
@@ -289,23 +314,23 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-      
+          python-version: "3.11"
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install pytest pytest-cov
-      
+
       - name: Run tests
         run: pytest --cov=src tests/
-      
+
       - name: Check coverage
         run: |
           coverage report --fail-under=80
@@ -321,19 +346,24 @@ Título: `[FEAT] Nombre breve`
 
 ```markdown
 ## Description
+
 [Qué necesita hacerse]
 
 ## User Story
+
 As a [user] I want [action] so that [benefit]
 
 ## Acceptance Criteria
+
 - [ ] Criterio 1
 - [ ] Criterio 2
 
 ## Technical Notes
+
 [Si usarás Copilot, menciona aquí]
 
 ## Estimación
+
 [X story points]
 ```
 
@@ -368,6 +398,7 @@ gh issue view 42
 ```
 
 Commit:
+
 ```bash
 git commit -m "docs(adr): cambiar ADR-XYZ de Propuesta a Aceptada"
 ```
@@ -408,4 +439,4 @@ git commit -m "docs(adr): cambiar ADR-XYZ de Propuesta a Aceptada"
 
 ---
 
-*Para más ayuda, consultá el README.md principal.*
+_Para más ayuda, consultá el README.md principal._

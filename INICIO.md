@@ -29,7 +29,9 @@ git clone https://github.com/[usuario]/[nombre-proyecto]
 cd [nombre-proyecto]
 ```
 
-### 2. Clonar este repo de guidelines (cada uno, una vez)
+### 2. Clonar este repo de guidelines (Opcional, para consulta local)
+
+Si querés tener las guías y skills localmente para leerlas cómodamente, podés clonar el repo en una carpeta paralela (fuera de tu proyecto):
 
 ```bash
 # En una carpeta separada (NO dentro del repo del grupo)
@@ -38,21 +40,37 @@ git clone https://github.com/[catedra]/ia-guidelines-taller
 
 ### 3. Copiar los archivos al repo del grupo
 
-Desde dentro del repo del grupo, ejecutar:
+Para simplificar el setup y evitar errores, proveemos comandos interactivos que crearán la estructura de carpetas, copiarán los templates de Speckit y configurarán el archivo de Copilot según tu stack tecnológico directamente desde la web (sin clonación previa).
+
+Desde la carpeta del repo de tu grupo, ejecutá el comando correspondiente a tu entorno:
+
+* **En Linux, macOS o Git Bash:**
+  ```bash
+  curl -sSL https://raw.githubusercontent.com/tpII/ia-guidelines-taller/main/setup-speckit.sh | bash
+  ```
+
+* **En Windows (PowerShell):**
+  ```powershell
+  irm https://raw.githubusercontent.com/tpII/ia-guidelines-taller/main/setup-speckit.ps1 | iex
+  ```
+
+El script te guiará paso a paso para seleccionar tu stack tecnológico y limpiará los archivos temporales automáticamente.
+
+---
+
+#### 💡 Alternativa: Copia manual (si tenés el repo clonado localmente)
+Si preferís no usar el script y copiar manualmente, ejecutá estos comandos desde el repo de tu grupo:
 
 ```bash
-# Estructura de especificación
+# Crear directorios
 mkdir -p speckit adr .github
 
-cp ../ia-guidelines-taller/speckit/constitution.md speckit/
-cp ../ia-guidelines-taller/speckit/specify.md speckit/
-cp ../ia-guidelines-taller/speckit/plan.md speckit/
-cp ../ia-guidelines-taller/speckit/tasks.md speckit/
-cp ../ia-guidelines-taller/speckit/implement.md speckit/
+# Copiar archivos
+cp ../ia-guidelines-taller/speckit/*.md speckit/
 cp ../ia-guidelines-taller/adr/template.md adr/
 ```
 
-Ahora elegí el stack de tu proyecto y copiá las instrucciones de Copilot:
+Luego, copiá las instrucciones de Copilot correspondientes a tu stack a la carpeta `.github/`:
 
 | Mi proyecto usa... | Comando |
 |---|---|
@@ -66,11 +84,11 @@ Ahora elegí el stack de tu proyecto y copiá las instrucciones de Copilot:
 
 ### 4. Completar la constitución del proyecto
 
-Abrí `speckit/constitution.md` **en grupo** y editenlo:
+Abrí `speckit/constitution.md` **en grupo** y edítenlo:
 
 - [ ] Definir el stack real del proyecto (borrar lo que no usen)
 - [ ] Acordar convenciones de código específicas del equipo
-- [ ] Copiar el archivo a `.github/copilot-instructions.md` o asegurarse que el de stacks/ ya esté ahí
+- [ ] Asegurarse de que el de stacks/ ya esté en `.github/copilot-instructions.md` (el script lo hace solo)
 
 > Este archivo es lo que Copilot va a leer como contexto base. Si está vacío o genérico, las sugerencias van a ser genéricas.
 
