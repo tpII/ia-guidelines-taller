@@ -74,6 +74,9 @@ Cuando vayas a hacer una tarea específica, abrí el archivo de skill correspond
 - Revisando un PR → abrí `skills/code-review.md`
 - Generando una feature nueva → abrí `skills/codegen.md`
 - Documentando una decisión → abrí `skills/architecture-decision.md`
+- Antes de entregar un informe → `skills/formato-entregas/` chequea el PDF con los mismos
+  criterios de forma con que lo corrige la cátedra (carátula, índices, epígrafes, lenguaje,
+  tipografía). Funciona como skill de Claude Code o como script suelto; ver su README.
 
 ---
 
@@ -131,6 +134,11 @@ mi-proyecto/
 
 **¿Puedo usar ChatGPT o Claude además de Copilot?**
 Sí. Los templates de `speckit/` y `skills/` funcionan como contexto para cualquier LLM. Copilot es el flujo principal porque está integrado al editor, pero no es excluyente.
+
+**¿Cómo sé si el formato de mi informe está bien antes de entregarlo?**
+Pasalo por `skills/formato-entregas/` (ver su README). Te dice qué falta o se desvía —
+índices, epígrafes, fuente, interlineado, primera persona— y cómo arreglarlo en Docs, Word,
+LaTeX o Typst. La rúbrica completa está en `skills/formato-entregas/references/rubrica.md`.
 
 **¿Los ADRs son obligatorios?**
 En el taller, sí. Son parte de la evaluación de decisiones de diseño. Se esperan al menos 3 ADRs por proyecto al momento de la entrega.
