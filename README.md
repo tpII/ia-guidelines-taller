@@ -76,7 +76,8 @@ Cuando vayas a hacer una tarea específica, abrí el archivo de skill correspond
 - Documentando una decisión → abrí `skills/architecture-decision.md`
 - Antes de entregar un informe → `skills/formato-entregas/` chequea el PDF con los mismos
   criterios de forma con que lo corrige la cátedra (carátula, índices, epígrafes, lenguaje,
-  tipografía). Funciona como skill de Claude Code o como script suelto; ver su README.
+  tipografía). Funciona como skill de Claude Code o como script suelto; paso a paso en
+  [how-to/formato-entregas.md](how-to/formato-entregas.md).
 
 ---
 

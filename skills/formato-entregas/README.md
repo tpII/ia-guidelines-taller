@@ -4,6 +4,9 @@ Skill para que el grupo pase su PDF (plan de proyecto, informe de avance, entreg
 los mismos criterios de forma con que lo corrige la cátedra, **antes** de mandarlo. Devuelve
 una lista de qué corregir, con página y cómo hacerlo en Google Docs, Word, LaTeX o Typst.
 
+> Guía paso a paso (instalación, uso y cómo leer el resultado):
+> [how-to/formato-entregas.md](../../how-to/formato-entregas.md).
+
 ```
 skills/formato-entregas/
 ├── SKILL.md                 instrucciones para el asistente (Claude Code, Cowork, Copilot)
